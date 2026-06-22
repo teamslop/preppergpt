@@ -13,7 +13,7 @@
         "agent": ["local-agent-glm52"],
         "vision": ["local-vision-gemma4-12b", "local-vision-moondream2"],
         "image": ["flux-2-klein-9b-fp8"],
-        "stt": ["whisper-large-v3"]
+        "stt": ["whisper-base-bundled"]
       }
     },
     "balanced": {
@@ -28,7 +28,7 @@
         "agent": ["local-agent-glm52"],
         "vision": ["local-vision-gemma4-12b", "local-vision-moondream2"],
         "image": ["flux-2-klein-9b-fp8"],
-        "stt": ["whisper-large-v3"]
+        "stt": ["whisper-base-bundled"]
       }
     },
     "speed": {
@@ -43,7 +43,7 @@
         "agent": ["local-agent-glm52"],
         "vision": ["local-vision-moondream2", "local-vision-gemma4-12b"],
         "image": ["flux-2-klein-9b-fp8"],
-        "stt": ["whisper-large-v3"]
+        "stt": ["whisper-base-bundled"]
       }
     }
   },
@@ -256,21 +256,23 @@
       }
     },
     {
-      "id": "whisper-large-v3",
-      "name": "Whisper Large v3 STT",
+      "id": "whisper-base-bundled",
+      "name": "Bundled Whisper Base STT",
       "roles": ["stt"],
       "backend": "openwebui-faster-whisper",
       "contextTokens": 0,
-      "qualityScore": 82,
-      "speedScore": 65,
-      "tpsEstimate": "audio transcription speed depends on CPU/GPU and clip length",
+      "qualityScore": 72,
+      "speedScore": 82,
+      "tpsEstimate": "local speech-to-text speed depends on CPU/GPU and clip length",
       "requires": {
-        "minRamGb": 16,
-        "diskGb": 4
+        "minRamGb": 8,
+        "diskGb": 1
       },
       "source": {
-        "type": "openwebui",
-        "description": "OpenWebUI faster-whisper local STT model."
+        "type": "bundled-download",
+        "model": "Systran/faster-whisper-base",
+        "license": "MIT",
+        "description": "Installer-cached faster-whisper base model mounted into OpenWebUI for offline local STT after install."
       }
     }
   ]

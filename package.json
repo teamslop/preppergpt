@@ -1,6 +1,6 @@
 {
   "name": "preppergpt",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A local-first ChatGPT-like field kit built on OpenWebUI and local models.",
   "type": "module",
   "bin": {
@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "npm run test && node bin/preppergpt.js plan --profile balanced --json >/dev/null && node bin/preppergpt.js install --profile balanced --dry-run",
+    "check": "npm run test && node bin/preppergpt.js plan --profile balanced --json >/dev/null && node bin/preppergpt.js install --profile balanced --dry-run && node bin/preppergpt.js bundle whisper --dry-run >/dev/null",
     "pack:dry-run": "npm pack --dry-run"
   },
   "keywords": [

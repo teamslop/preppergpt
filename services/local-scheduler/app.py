@@ -3792,7 +3792,7 @@ def local_parity_recommended_model(feature_family: str, primary_models: list[str
     if "image understanding" in family:
         return first_available(["local-vision-gemma4-12b", "local-vision-moondream2"])
     if "voice" in family or "record mode" in family:
-        return first_available(["whisper-large-v3", "local-agent-glm52"])
+        return first_available(["whisper-base-bundled", "whisper-large-v3", "local-agent-glm52"])
     if "shopping" in family:
         return first_available(["glm52-shopping-research-local", "glm52-q4-local"])
     if "job search" in family or "resume" in family or "finance" in family:
@@ -5317,7 +5317,7 @@ def local_parity_dashboard() -> dict:
             {"id": "local-agent-glm52", "route": "local_agent", "best_for": "tool and agent workflows"},
             {"id": "local-vision-gemma4-12b", "route": "local_vision", "best_for": "image understanding"},
             {"id": "flux-2-klein-9b-fp8", "route": "comfyui_flux", "best_for": "image generation"},
-            {"id": "whisper-large-v3", "route": "local_whisper_stt", "best_for": "speech-to-text"},
+            {"id": "whisper-base-bundled", "route": "local_whisper_stt", "best_for": "speech-to-text"},
         ],
         "route_profiles": {
             key: {

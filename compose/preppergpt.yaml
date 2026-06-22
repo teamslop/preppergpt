@@ -13,6 +13,7 @@ services:
         hard: 1048576
     volumes:
       - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/openwebui:/app/backend/data
+      - ${PREPPERGPT_MODELS_DIR:?set PREPPERGPT_MODELS_DIR}:/models:ro
       - ../services/comfyui:/app/backend/data/parity-comfyui:ro
       - ../themes/preppergpt/static/favicon.svg:/app/backend/open_webui/static/favicon.svg:ro
       - ../themes/preppergpt/static/logo.svg:/app/backend/open_webui/static/logo.svg:ro
@@ -69,9 +70,10 @@ services:
       CODE_INTERPRETER_JUPYTER_URL: "http://127.0.0.1:8888"
       CODE_INTERPRETER_JUPYTER_AUTH: "token"
       CODE_INTERPRETER_JUPYTER_AUTH_TOKEN: "${JUPYTER_TOKEN:?set JUPYTER_TOKEN}"
-      WHISPER_MODEL: "large-v3"
+      WHISPER_MODEL: "${PREPPERGPT_WHISPER_MODEL_PATH:-/models/whisper/base}"
+      WHISPER_MODEL_DIR: "/models/whisper"
       WHISPER_COMPUTE_TYPE: "int8"
-      WHISPER_MODEL_AUTO_UPDATE: "True"
+      WHISPER_MODEL_AUTO_UPDATE: "False"
       WHISPER_VAD_FILTER: "True"
       WHISPER_MULTILINGUAL: "True"
       ENABLE_IMAGE_GENERATION: "True"

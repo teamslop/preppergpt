@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import http from "node:http";
+import { ensureWhisperBundle, modelDirs, whisperBundleStatus } from "./lib/bundles.mjs";
 import { detectMachine } from "./lib/detect.mjs";
 import { buildPlan, normalizeProfile } from "./lib/planner.mjs";
 import { packageRoot, runtimePaths } from "./lib/paths.mjs";
 import { renderInstall } from "./lib/render.mjs";
 import { commandResult, parseArgs, readJson, shellQuote } from "./lib/util.mjs";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 function usage() {
   return `PrepperGPT ${VERSION}
@@ -14,11 +15,12 @@ function usage() {
 Usage:
   preppergpt detect [--json]
   preppergpt plan --profile balanced|intelligence|speed [--json]
-  preppergpt install --profile balanced|intelligence|speed [--dry-run] [--home PATH]
+  preppergpt install --profile balanced|intelligence|speed [--dry-run] [--skip-bundles] [--home PATH]
   preppergpt start [--home PATH]
   preppergpt stop [--home PATH]
   preppergpt status [--home PATH] [--json]
   preppergpt doctor [--profile balanced|intelligence|speed] [--home PATH]
+  preppergpt bundle whisper [--home PATH] [--force]
   preppergpt switch-profile --profile balanced|intelligence|speed [--home PATH]
   preppergpt version
 `;
@@ -122,6 +124,11 @@ async function commandInstall(flags) {
     return;
   }
   const paths = renderInstall(plan, detection, { home });
+  if (!flags.skip_bundles) {
+    console.log("Installing bundled Whisper base STT model...");
+    const bundle = await ensureWhisperBundle(paths.whisperHostDir, { force: Boolean(flags.force_bundle) });
+    console.log(`Whisper bundle: ${bundle.ready ? "ready" : "not ready"} at ${paths.whisperHostDir}`);
+  }
   console.log(`Wrote ${paths.envFile}`);
   console.log(`Wrote ${paths.generatedCompose}`);
   console.log(`Wrote ${paths.modelPlan}`);
@@ -187,6 +194,7 @@ async function commandStatus(flags) {
 }
 
 async function commandDoctor(flags) {
+  const paths = runtimePaths(flags.home);
   const detection = await detectMachine();
   const plan = buildPlan(detection, profileFrom(flags));
   printPlan(plan);
@@ -198,6 +206,28 @@ async function commandDoctor(flags) {
   for (const [port, entry] of Object.entries(detection.ports)) {
     if (!entry.free) {
       console.log(`  port ${port}: occupied`);
+    }
+  }
+  const dirs = modelDirs(paths);
+  const whisper = whisperBundleStatus(dirs.whisperHostDir);
+  console.log(`  whisper-base bundle: ${whisper.ready ? "ok" : `missing ${whisper.missing.length} files`} (${dirs.whisperHostDir})`);
+}
+
+async function commandBundle(flags, positional) {
+  const name = positional[1] || "whisper";
+  if (!["whisper", "whisper-base"].includes(name)) {
+    throw new Error(`Unknown bundle: ${name}`);
+  }
+  const paths = runtimePaths(flags.home);
+  const dirs = modelDirs(paths);
+  const bundle = await ensureWhisperBundle(dirs.whisperHostDir, {
+    force: Boolean(flags.force),
+    dryRun: Boolean(flags.dry_run)
+  });
+  console.log(`Whisper bundle ${bundle.ready ? "ready" : "not ready"} at ${dirs.whisperHostDir}`);
+  if (bundle.missing?.length) {
+    for (const file of bundle.missing) {
+      console.log(`  missing ${file}`);
     }
   }
 }
@@ -220,6 +250,7 @@ export async function runCli(argv) {
   if (command === "stop") return commandStop(flags);
   if (command === "status") return commandStatus(flags);
   if (command === "doctor") return commandDoctor(flags);
+  if (command === "bundle") return commandBundle(flags, positional);
   if (command === "switch-profile") return commandSwitchProfile(flags);
   throw new Error(`Unknown command: ${command}\n\n${usage()}`);
 }

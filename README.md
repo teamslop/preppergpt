@@ -62,6 +62,7 @@ preppergpt stop
 preppergpt status
 preppergpt doctor
 preppergpt switch-profile --profile speed
+preppergpt bundle whisper
 ```
 
 ## Profiles
@@ -78,8 +79,13 @@ and route ordering into the generated compose override.
 
 ## Model Assets
 
-Some routes can be pulled by the runtime, while very large routes such as GLM
-5.2 Q4 and Flux weights are marked as manual or external in
+PrepperGPT installs a bundled local Whisper Base STT cache during
+`preppergpt install`. It is stored under `~/.preppergpt/data/models/whisper/base`
+by default and mounted into OpenWebUI, so speech-to-text works from local files
+after setup.
+
+Some other routes can be pulled by the runtime, while very large routes such as
+GLM 5.2 Q4 and Flux weights are marked as manual or external in
 `profiles/models.json`. `preppergpt doctor` reports which selected routes still
 need local files or endpoints.
 

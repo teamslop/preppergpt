@@ -31,6 +31,8 @@ test("renderInstall writes env, compose override, and plan", () => {
   const env = fs.readFileSync(paths.envFile, "utf8");
   assert.match(env, /WEBUI_NAME=PrepperGPT/);
   assert.match(env, /PREPPERGPT_DEFAULT_MODEL=local-chatgpt-auto/);
+  assert.match(env, /PREPPERGPT_WHISPER_MODEL=whisper-base/);
+  assert.ok(env.includes("PREPPERGPT_WHISPER_MODEL_PATH=/models/whisper/base"));
   const generated = fs.readFileSync(paths.generatedCompose, "utf8");
   assert.match(generated, /DEFAULT_MODELS: "local-chatgpt-auto"/);
 });

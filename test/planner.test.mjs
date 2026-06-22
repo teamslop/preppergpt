@@ -29,8 +29,10 @@ test("balanced plan keeps auto route as default and includes specialist routes",
   assert.equal(plan.defaultModel, "local-chatgpt-auto");
   assert.equal(plan.selected.fast.id, "gemma4:12b-256k-gpu");
   assert.equal(plan.selected.coding.id, "qwen3.6-35b-a3b:slopcode-cpu-64k");
+  assert.equal(plan.selected.stt.id, "whisper-base-bundled");
   assert.ok(plan.routeIds.includes("local-chatgpt-auto"));
   assert.ok(plan.routeIds.includes("glm52-q4-local"));
+  assert.ok(plan.routeIds.includes("whisper-base-bundled"));
 });
 
 test("intelligence plan prioritizes GLM 5.2 long context", () => {
