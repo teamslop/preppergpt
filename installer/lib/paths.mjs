@@ -17,7 +17,9 @@ export function runtimePaths(home = defaultHome()) {
     composeDir: path.join(root, "compose"),
     generatedCompose: path.join(root, "compose", "generated.models.yaml"),
     modelPlan: path.join(root, "data", "preppergpt", "model-plan.json"),
-    detectReport: path.join(root, "data", "preppergpt", "hardware-detect.json")
+    detectReport: path.join(root, "data", "preppergpt", "hardware-detect.json"),
+    setupState: path.join(root, "data", "preppergpt", "setup-state.json"),
+    setupLog: path.join(root, "data", "preppergpt", "setup.log")
   };
 }
 

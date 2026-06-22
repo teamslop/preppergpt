@@ -62,7 +62,7 @@ export function whisperBundleStatus(targetDir) {
   };
 }
 
-async function downloadFile(url, targetFile) {
+async function downloadFile(url, targetFile, options = {}) {
   const response = await fetch(url, {
     headers: {
       "User-Agent": "preppergpt/0.1"
@@ -74,8 +74,28 @@ async function downloadFile(url, targetFile) {
   }
   fs.mkdirSync(path.dirname(targetFile), { recursive: true });
   const tmp = `${targetFile}.tmp-${process.pid}`;
-  await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(tmp));
+  const totalBytes = Number(response.headers.get("content-length")) || null;
+  let downloadedBytes = 0;
+  const stream = Readable.fromWeb(response.body);
+  stream.on("data", (chunk) => {
+    downloadedBytes += chunk.length;
+    options.onProgress?.({
+      event: "progress",
+      url,
+      targetFile,
+      downloadedBytes,
+      totalBytes
+    });
+  });
+  await pipeline(stream, fs.createWriteStream(tmp));
   fs.renameSync(tmp, targetFile);
+  options.onProgress?.({
+    event: "done",
+    url,
+    targetFile,
+    downloadedBytes,
+    totalBytes
+  });
 }
 
 export async function ensureWhisperBundle(targetDir, options = {}) {
@@ -90,13 +110,27 @@ export async function ensureWhisperBundle(targetDir, options = {}) {
   for (const file of WHISPER_BUNDLE.files) {
     const targetFile = path.join(targetDir, file);
     if (fs.existsSync(targetFile) && !options.force) {
+      options.onProgress?.({
+        event: "skip",
+        file,
+        targetFile,
+        bundle: WHISPER_BUNDLE.id
+      });
       continue;
     }
     const url = `https://huggingface.co/${WHISPER_BUNDLE.repo}/resolve/${WHISPER_BUNDLE.revision}/${file}`;
     if (!options.quiet) {
       console.log(`Downloading ${WHISPER_BUNDLE.repo}/${file}`);
     }
-    await downloadFile(url, targetFile);
+    options.onProgress?.({
+      event: "start",
+      file,
+      targetFile,
+      bundle: WHISPER_BUNDLE.id
+    });
+    await downloadFile(url, targetFile, {
+      onProgress: (progress) => options.onProgress?.({ ...progress, file, bundle: WHISPER_BUNDLE.id })
+    });
   }
   writeJson(path.join(targetDir, "preppergpt-bundle.json"), {
     ...WHISPER_BUNDLE,

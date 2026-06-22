@@ -6,13 +6,15 @@ import { buildPlan, installSupportError, normalizeProfile } from "./lib/planner.
 import { packageRoot, runtimePaths } from "./lib/paths.mjs";
 import { renderInstall } from "./lib/render.mjs";
 import { commandResult, parseArgs, readJson, shellQuote } from "./lib/util.mjs";
+import { printableWizardState, runWizard, runWizardDoctor } from "./lib/wizard.mjs";
 
-const VERSION = "0.1.4";
+const VERSION = "0.1.5";
 
 function usage() {
   return `PrepperGPT ${VERSION}
 
 Usage:
+  preppergpt wizard [--profile auto|balanced|intelligence|speed] [--start] [--yes] [--resume] [--reset] [--doctor] [--json] [--skip-bundles] [--home PATH]
   preppergpt detect [--json]
   preppergpt plan --profile balanced|intelligence|speed [--json]
   preppergpt install --profile balanced|intelligence|speed [--start] [--dry-run] [--skip-bundles] [--home PATH]
@@ -274,6 +276,49 @@ async function commandBundle(flags, positional) {
   }
 }
 
+function printDoctorSummary(summary) {
+  console.log(`Hardware: ${summary.hardware.ramGb} GB RAM, ${summary.hardware.gpu}`);
+  if (summary.ready) {
+    console.log("PrepperGPT setup looks ready.");
+  } else {
+    console.log("PrepperGPT setup needs attention:");
+    for (const blocker of summary.blockers) {
+      console.log(`  - ${blocker.issue}`);
+      console.log(`    Fix: ${blocker.fix}`);
+    }
+  }
+  if (summary.notes?.length) {
+    console.log("Notes:");
+    for (const note of summary.notes) {
+      console.log(`  - ${note.issue}`);
+      console.log(`    Tip: ${note.fix}`);
+    }
+  }
+}
+
+async function commandWizard(flags) {
+  if (flags.doctor) {
+    const summary = await runWizardDoctor(flags);
+    if (flags.json) {
+      printJson(summary);
+      return;
+    }
+    printDoctorSummary(summary);
+    return;
+  }
+  const result = await runWizard(flags);
+  if (flags.json) {
+    const payload = {
+      ...printableWizardState(result.state),
+      error: result.error ? String(result.error?.message || result.error) : undefined
+    };
+    printJson(payload);
+  }
+  if (result.error) {
+    process.exitCode = 1;
+  }
+}
+
 export async function runCli(argv) {
   const { flags, positional } = parseArgs(argv);
   const command = positional[0] || (flags.help ? "help" : "");
@@ -285,6 +330,7 @@ export async function runCli(argv) {
     console.log(VERSION);
     return;
   }
+  if (command === "wizard") return commandWizard(flags);
   if (command === "detect") return commandDetect(flags);
   if (command === "plan") return commandPlan(flags);
   if (command === "install") return commandInstall(flags);

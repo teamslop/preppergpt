@@ -18,13 +18,44 @@ target scenario is no assistant at all.
 
 ## Install
 
-Install and start from npm in one command:
+Beginner setup wizard:
+
+```bash
+npx --yes preppergpt wizard
+```
+
+The wizard checks your machine, chooses a setup mode, writes configuration,
+downloads the small local Whisper speech-to-text bundle, records progress, and
+can resume with:
+
+```bash
+npx --yes preppergpt wizard --resume
+```
+
+Wizard progress is saved under `~/.preppergpt/data/preppergpt/setup-state.json`
+and a plain log is written to `~/.preppergpt/data/preppergpt/setup.log`. If a
+download or service start fails, rerun the resume command after fixing the
+reported issue.
+
+To check setup readiness without changing files:
+
+```bash
+npx --yes preppergpt wizard --doctor
+```
+
+To start services as part of the wizard:
+
+```bash
+npx --yes preppergpt wizard --start
+```
+
+Advanced one-command install and start:
 
 ```bash
 npx --yes preppergpt install --profile balanced --start
 ```
 
-Or use two commands:
+Advanced two-command install:
 
 ```bash
 npx --yes preppergpt install --profile balanced
@@ -70,6 +101,9 @@ Change them before exposing the machine to any network.
 ## Commands
 
 ```bash
+preppergpt wizard
+preppergpt wizard --resume
+preppergpt wizard --doctor
 preppergpt detect
 preppergpt plan --profile balanced
 preppergpt install --profile balanced --start

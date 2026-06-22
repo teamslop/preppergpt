@@ -1,6 +1,6 @@
 {
   "name": "preppergpt",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A post-apocalyptic local AI field kit for running a ChatGPT-like experience when hosted services are unavailable.",
   "type": "module",
   "bin": {
@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "npm run test && node bin/preppergpt.js plan --profile balanced --json >/dev/null && node bin/preppergpt.js install --profile balanced --dry-run && node bin/preppergpt.js bundle whisper --dry-run >/dev/null",
+    "check": "npm run test && node bin/preppergpt.js plan --profile balanced --json >/dev/null && node bin/preppergpt.js wizard --yes --profile speed --dry-run --skip-bundles --json >/dev/null && node bin/preppergpt.js install --profile balanced --dry-run && node bin/preppergpt.js bundle whisper --dry-run >/dev/null",
     "pack:dry-run": "npm pack --dry-run"
   },
   "keywords": [
