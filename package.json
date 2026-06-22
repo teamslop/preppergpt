@@ -1,0 +1,48 @@
+{
+  "name": "preppergpt",
+  "version": "0.1.0",
+  "description": "A local-first ChatGPT-like field kit built on OpenWebUI and local models.",
+  "type": "module",
+  "bin": {
+    "preppergpt": "bin/preppergpt.js"
+  },
+  "files": [
+    "bin/",
+    "installer/",
+    "compose/",
+    "profiles/",
+    "themes/",
+    "services/",
+    "docs/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "npm run test && node bin/preppergpt.js plan --profile balanced --json >/dev/null && node bin/preppergpt.js install --profile balanced --dry-run",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "keywords": [
+    "openwebui",
+    "local-ai",
+    "llm",
+    "ollama",
+    "preppergpt",
+    "offline-ai"
+  ],
+  "homepage": "https://github.com/teamslop/preppergpt#readme",
+  "bugs": {
+    "url": "https://github.com/teamslop/preppergpt/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamslop/preppergpt.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,51 @@
+[
+  {
+    "type": "model",
+    "node_ids": [
+      "12"
+    ],
+    "key": "unet_name"
+  },
+  {
+    "type": "prompt",
+    "node_ids": [
+      "6"
+    ],
+    "key": "text"
+  },
+  {
+    "type": "image",
+    "node_ids": [
+      "41",
+      "43"
+    ],
+    "key": "image"
+  },
+  {
+    "type": "width",
+    "node_ids": [
+      "27",
+      "30",
+      "44",
+      "45"
+    ],
+    "key": "width"
+  },
+  {
+    "type": "height",
+    "node_ids": [
+      "27",
+      "30",
+      "44",
+      "45"
+    ],
+    "key": "height"
+  },
+  {
+    "type": "n",
+    "node_ids": [
+      "27"
+    ],
+    "key": "batch_size"
+  }
+]

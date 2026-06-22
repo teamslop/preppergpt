@@ -1,0 +1,15 @@
+:root {
+  --preppergpt-bg: #101611;
+  --preppergpt-panel: #17231a;
+  --preppergpt-accent: #89b36d;
+  --preppergpt-warn: #e4c76a;
+}
+
+html.dark body {
+  background: var(--preppergpt-bg);
+}
+
+[data-testid="sidebar"],
+.sidebar {
+  border-color: rgba(137, 179, 109, 0.24);
+}

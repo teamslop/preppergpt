@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "profiles": {
+    "intelligence": {
+      "label": "Max intelligence",
+      "defaultModel": "glm52-q4-local",
+      "roles": {
+        "chat": ["glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b", "llama3.1:8b"],
+        "reasoning": ["glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
+        "fast": ["gemma4:12b-256k-gpu", "llama3.1:8b"],
+        "coding": ["qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
+        "research": ["deep-research-glm52"],
+        "agent": ["local-agent-glm52"],
+        "vision": ["local-vision-gemma4-12b", "local-vision-moondream2"],
+        "image": ["flux-2-klein-9b-fp8"],
+        "stt": ["whisper-large-v3"]
+      }
+    },
+    "balanced": {
+      "label": "Middle ground",
+      "defaultModel": "local-chatgpt-auto",
+      "roles": {
+        "chat": ["local-chatgpt-auto", "gemma4:12b-256k-gpu", "glm52-q4-local", "llama3.1:8b"],
+        "reasoning": ["glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
+        "fast": ["gemma4:12b-256k-gpu", "llama3.1:8b"],
+        "coding": ["qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
+        "research": ["deep-research-glm52"],
+        "agent": ["local-agent-glm52"],
+        "vision": ["local-vision-gemma4-12b", "local-vision-moondream2"],
+        "image": ["flux-2-klein-9b-fp8"],
+        "stt": ["whisper-large-v3"]
+      }
+    },
+    "speed": {
+      "label": "Max speed",
+      "defaultModel": "local-chatgpt-auto",
+      "roles": {
+        "chat": ["local-chatgpt-auto", "gemma4:12b-256k-gpu", "llama3.1:8b"],
+        "reasoning": ["qwen2.5-coder:14b", "glm52-q4-local"],
+        "fast": ["gemma4:12b-256k-gpu", "llama3.1:8b"],
+        "coding": ["qwen2.5-coder:14b", "qwen3.6-35b-a3b:slopcode-cpu-64k"],
+        "research": ["deep-research-glm52"],
+        "agent": ["local-agent-glm52"],
+        "vision": ["local-vision-moondream2", "local-vision-gemma4-12b"],
+        "image": ["flux-2-klein-9b-fp8"],
+        "stt": ["whisper-large-v3"]
+      }
+    }
+  },
+  "models": [
+    {
+      "id": "local-chatgpt-auto",
+      "name": "PrepperGPT Auto",
+      "roles": ["chat"],
+      "backend": "preppergpt-router",
+      "contextTokens": 65536,
+      "qualityScore": 88,
+      "speedScore": 85,
+      "tpsEstimate": "25-90 completion tokens/sec when the fast lane is warm",
+      "requires": {
+        "minRamGb": 16,
+        "diskGb": 20
+      },
+      "source": {
+        "type": "virtual",
+        "description": "Virtual OpenAI-compatible route exposed by the local-agent sidecar."
+      }
+    },
+    {
+      "id": "glm52-q4-local",
+      "name": "GLM 5.2 Q4 Local",
+      "roles": ["chat", "reasoning"],
+      "backend": "llama.cpp",
+      "contextTokens": 65536,
+      "qualityScore": 100,
+      "speedScore": 25,
+      "tpsEstimate": "0.4-3 completion tokens/sec on large CPU/NVMe builds; benchmark locally",
+      "requires": {
+        "minRamGb": 96,
+        "diskGb": 520,
+        "nvme": true
+      },
+      "source": {
+        "type": "external",
+        "description": "Run a GLM 5.2 Q4 OpenAI-compatible llama.cpp server at http://127.0.0.1:11441/v1 with weights on NVMe."
+      }
+    },
+    {
+      "id": "qwen3.6-35b-a3b:slopcode-cpu-64k",
+      "name": "Slopcode Qwen Coding 64k",
+      "roles": ["chat", "coding", "reasoning"],
+      "backend": "llama.cpp",
+      "contextTokens": 65536,
+      "qualityScore": 92,
+      "speedScore": 45,
+      "tpsEstimate": "2-12 completion tokens/sec depending on quantization and offload",
+      "requires": {
+        "minRamGb": 48,
+        "diskGb": 90
+      },
+      "source": {
+        "type": "external",
+        "description": "Run an OpenAI-compatible Slopcode/Qwen endpoint at http://127.0.0.1:11438/v1."
+      }
+    },
+    {
+      "id": "gemma4:12b-256k-gpu",
+      "name": "Gemma Fast Local",
+      "roles": ["chat", "fast"],
+      "backend": "ollama",
+      "contextTokens": 262144,
+      "qualityScore": 78,
+      "speedScore": 96,
+      "tpsEstimate": "35-90 completion tokens/sec on a modern 16-24 GB NVIDIA GPU",
+      "requires": {
+        "minRamGb": 24,
+        "minVramGb": 11,
+        "diskGb": 20
+      },
+      "source": {
+        "type": "ollama",
+        "model": "gemma4:12b",
+        "description": "Pulled or provided through the local Ollama server."
+      }
+    },
+    {
+      "id": "qwen2.5-coder:14b",
+      "name": "Qwen Coder Fast Fallback",
+      "roles": ["chat", "coding", "reasoning"],
+      "backend": "ollama",
+      "contextTokens": 32768,
+      "qualityScore": 76,
+      "speedScore": 75,
+      "tpsEstimate": "12-45 completion tokens/sec depending on GPU and quantization",
+      "requires": {
+        "minRamGb": 24,
+        "minVramGb": 10,
+        "diskGb": 16
+      },
+      "source": {
+        "type": "ollama",
+        "model": "qwen2.5-coder:14b",
+        "description": "Ollama coding fallback."
+      }
+    },
+    {
+      "id": "llama3.1:8b",
+      "name": "Small CPU/GPU Fallback",
+      "roles": ["chat", "fast"],
+      "backend": "ollama",
+      "contextTokens": 8192,
+      "qualityScore": 58,
+      "speedScore": 85,
+      "tpsEstimate": "15-80 completion tokens/sec depending on GPU; usable CPU fallback",
+      "requires": {
+        "minRamGb": 16,
+        "diskGb": 8
+      },
+      "source": {
+        "type": "ollama",
+        "model": "llama3.1:8b",
+        "description": "Small Ollama fallback for broad hardware reach."
+      }
+    },
+    {
+      "id": "deep-research-glm52",
+      "name": "Deep Research",
+      "roles": ["research"],
+      "backend": "preppergpt-sidecar",
+      "contextTokens": 65536,
+      "qualityScore": 88,
+      "speedScore": 40,
+      "tpsEstimate": "research latency depends on search/fetch count and synthesis model",
+      "requires": {
+        "minRamGb": 16,
+        "diskGb": 4
+      },
+      "source": {
+        "type": "virtual",
+        "description": "Sidecar route that uses search, Tika, local documents, and the selected reasoning model."
+      }
+    },
+    {
+      "id": "local-agent-glm52",
+      "name": "Local Agent",
+      "roles": ["agent"],
+      "backend": "preppergpt-sidecar",
+      "contextTokens": 65536,
+      "qualityScore": 84,
+      "speedScore": 45,
+      "tpsEstimate": "tool latency depends on browser, shell, search, and selected synthesis model",
+      "requires": {
+        "minRamGb": 16,
+        "diskGb": 4
+      },
+      "source": {
+        "type": "virtual",
+        "description": "Approval-gated local tool, browser, desktop, and auto-router sidecar."
+      }
+    },
+    {
+      "id": "local-vision-gemma4-12b",
+      "name": "Local Vision Gemma",
+      "roles": ["vision"],
+      "backend": "preppergpt-sidecar",
+      "contextTokens": 8192,
+      "qualityScore": 78,
+      "speedScore": 65,
+      "tpsEstimate": "image latency depends on Ollama vision route and image size",
+      "requires": {
+        "minRamGb": 24,
+        "minVramGb": 11,
+        "diskGb": 20
+      },
+      "source": {
+        "type": "virtual",
+        "description": "Local vision sidecar proxying the Gemma Ollama vision route."
+      }
+    },
+    {
+      "id": "local-vision-moondream2",
+      "name": "Local Vision Moondream2",
+      "roles": ["vision"],
+      "backend": "preppergpt-sidecar",
+      "contextTokens": 4096,
+      "qualityScore": 62,
+      "speedScore": 80,
+      "tpsEstimate": "usually fast after model load; CPU fallback is acceptable for OCR-style tasks",
+      "requires": {
+        "minRamGb": 16,
+        "diskGb": 8
+      },
+      "source": {
+        "type": "huggingface",
+        "model": "vikhyatk/moondream2",
+        "description": "Downloaded by Transformers on first use."
+      }
+    },
+    {
+      "id": "flux-2-klein-9b-fp8",
+      "name": "Flux Image Generation",
+      "roles": ["image"],
+      "backend": "comfyui",
+      "contextTokens": 0,
+      "qualityScore": 82,
+      "speedScore": 35,
+      "tpsEstimate": "image generation, not token generation; expect tens of seconds per image",
+      "requires": {
+        "minRamGb": 32,
+        "minVramGb": 16,
+        "diskGb": 60
+      },
+      "source": {
+        "type": "manual",
+        "description": "Place Flux model, text encoder, and VAE files in the configured ComfyUI models directory."
+      }
+    },
+    {
+      "id": "whisper-large-v3",
+      "name": "Whisper Large v3 STT",
+      "roles": ["stt"],
+      "backend": "openwebui-faster-whisper",
+      "contextTokens": 0,
+      "qualityScore": 82,
+      "speedScore": 65,
+      "tpsEstimate": "audio transcription speed depends on CPU/GPU and clip length",
+      "requires": {
+        "minRamGb": 16,
+        "diskGb": 4
+      },
+      "source": {
+        "type": "openwebui",
+        "description": "OpenWebUI faster-whisper local STT model."
+      }
+    }
+  ]
+}

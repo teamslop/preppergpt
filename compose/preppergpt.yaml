@@ -1,0 +1,232 @@
+name: preppergpt
+
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: preppergpt-open-webui
+    pull_policy: always
+    restart: unless-stopped
+    network_mode: host
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+    volumes:
+      - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/openwebui:/app/backend/data
+      - ../services/comfyui:/app/backend/data/parity-comfyui:ro
+      - ../themes/preppergpt/static/favicon.svg:/app/backend/open_webui/static/favicon.svg:ro
+      - ../themes/preppergpt/static/logo.svg:/app/backend/open_webui/static/logo.svg:ro
+    environment:
+      WEBUI_NAME: "PrepperGPT"
+      WEBUI_AUTH: "True"
+      WEBUI_ADMIN_EMAIL: "${WEBUI_ADMIN_EMAIL:?set WEBUI_ADMIN_EMAIL}"
+      WEBUI_ADMIN_PASSWORD: "${WEBUI_ADMIN_PASSWORD:?set WEBUI_ADMIN_PASSWORD}"
+      WEBUI_ADMIN_NAME: "${WEBUI_ADMIN_NAME:-PrepperGPT Admin}"
+      WEBUI_SECRET_KEY: "${WEBUI_SECRET_KEY:?set WEBUI_SECRET_KEY}"
+      ENABLE_OLLAMA_API: "True"
+      OLLAMA_BASE_URLS: "${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
+      ENABLE_OPENAI_API: "True"
+      OPENAI_API_BASE_URLS: "${SLOCODE_BASE_URL:-http://127.0.0.1:11438/v1};${GLM52_BASE_URL:-http://127.0.0.1:11441/v1};http://127.0.0.1:18041/v1;http://127.0.0.1:18043/v1;http://127.0.0.1:18044/v1"
+      OPENAI_API_KEYS: "slopcode;glm52;deep-research;local-agent;local-vision"
+      ENABLE_DIRECT_CONNECTIONS: "True"
+      DEFAULT_MODELS: "${PREPPERGPT_DEFAULT_MODEL:-local-chatgpt-auto}"
+      MODEL_ORDER_LIST: "${PREPPERGPT_MODEL_ORDER_LIST:-[\"local-chatgpt-auto\"]}"
+      TASK_MODEL: "${PREPPERGPT_DEFAULT_MODEL:-local-chatgpt-auto}"
+      ENABLE_CHANNELS: "True"
+      ENABLE_TITLE_GENERATION: "False"
+      ENABLE_TAGS_GENERATION: "False"
+      ENABLE_FOLLOW_UP_GENERATION: "False"
+      ENABLE_SEARCH_QUERY_GENERATION: "True"
+      ENABLE_RETRIEVAL_QUERY_GENERATION: "True"
+      DEFAULT_PROMPT_SUGGESTIONS: >-
+        [
+          {"title":["Field repair","diagnose a broken water pump"],"content":"Help me troubleshoot a broken water pump with only hand tools. Ask clarifying questions first."},
+          {"title":["Food storage","build a rotation plan"],"content":"Create a practical food storage rotation plan for a household of four using shelf-stable staples."},
+          {"title":["Medical reference","triage a minor injury"],"content":"Give general first-aid information for a minor injury and clearly flag when professional care is needed."},
+          {"title":["Radio log","summarize messages"],"content":"Turn this radio message log into a concise situation report with unresolved questions."}
+        ]
+      CONTENT_EXTRACTION_ENGINE: "tika"
+      TIKA_SERVER_URL: "http://127.0.0.1:9998"
+      ENABLE_RAG_HYBRID_SEARCH: "True"
+      RAG_EMBEDDING_MODEL: "BAAI/bge-m3"
+      RAG_RERANKING_MODEL: "BAAI/bge-reranker-v2-m3"
+      RAG_TOP_K: "8"
+      RAG_TOP_K_RERANKER: "4"
+      CHUNK_SIZE: "1000"
+      CHUNK_OVERLAP: "150"
+      ENABLE_WEB_SEARCH: "True"
+      WEB_SEARCH_ENGINE: "searxng"
+      SEARXNG_QUERY_URL: "http://127.0.0.1:18080/search?q=<query>&format=json"
+      WEB_SEARCH_RESULT_COUNT: "5"
+      WEB_SEARCH_CONCURRENT_REQUESTS: "3"
+      ENABLE_CODE_EXECUTION: "True"
+      CODE_EXECUTION_ENGINE: "jupyter"
+      CODE_EXECUTION_JUPYTER_URL: "http://127.0.0.1:8888"
+      CODE_EXECUTION_JUPYTER_AUTH: "token"
+      CODE_EXECUTION_JUPYTER_AUTH_TOKEN: "${JUPYTER_TOKEN:?set JUPYTER_TOKEN}"
+      ENABLE_CODE_INTERPRETER: "True"
+      CODE_INTERPRETER_ENGINE: "jupyter"
+      CODE_INTERPRETER_JUPYTER_URL: "http://127.0.0.1:8888"
+      CODE_INTERPRETER_JUPYTER_AUTH: "token"
+      CODE_INTERPRETER_JUPYTER_AUTH_TOKEN: "${JUPYTER_TOKEN:?set JUPYTER_TOKEN}"
+      WHISPER_MODEL: "large-v3"
+      WHISPER_COMPUTE_TYPE: "int8"
+      WHISPER_MODEL_AUTO_UPDATE: "True"
+      WHISPER_VAD_FILTER: "True"
+      WHISPER_MULTILINGUAL: "True"
+      ENABLE_IMAGE_GENERATION: "True"
+      IMAGE_GENERATION_ENGINE: "comfyui"
+      COMFYUI_BASE_URL: "http://127.0.0.1:8188"
+      IMAGE_GENERATION_MODEL: "flux-2-klein-9b-fp8.safetensors"
+      IMAGE_SIZE: "1024x1024"
+      IMAGE_STEPS: "20"
+      SCARF_NO_ANALYTICS: "True"
+      DO_NOT_TRACK: "True"
+      ANONYMIZED_TELEMETRY: "False"
+      PORT: "${PREPPERGPT_PORT:-8080}"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: preppergpt-ollama
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/ollama:/root/.ollama
+    environment:
+      OLLAMA_HOST: "127.0.0.1:11434"
+      OLLAMA_MODELS: "/root/.ollama/models"
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: preppergpt-searxng
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ../services/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    environment:
+      SEARXNG_BASE_URL: "http://127.0.0.1:18080/"
+      SEARXNG_SECRET_KEY: "${SEARXNG_SECRET_KEY:?set SEARXNG_SECRET_KEY}"
+
+  tika:
+    image: apache/tika:latest-full
+    container_name: preppergpt-tika
+    restart: unless-stopped
+    network_mode: host
+
+  jupyter:
+    image: quay.io/jupyter/minimal-notebook:latest
+    container_name: preppergpt-jupyter
+    restart: unless-stopped
+    network_mode: host
+    user: root
+    volumes:
+      - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/jupyter:/home/jovyan/work
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: "${JUPYTER_TOKEN:?set JUPYTER_TOKEN}"
+      CHOWN_HOME: "yes"
+      CHOWN_HOME_OPTS: "-R"
+    command:
+      - start-notebook.py
+      - "--ServerApp.ip=0.0.0.0"
+      - "--ServerApp.port=8888"
+      - "--ServerApp.token=${JUPYTER_TOKEN:?set JUPYTER_TOKEN}"
+      - "--ServerApp.password="
+      - "--ServerApp.allow_origin=*"
+
+  deep-research:
+    build:
+      context: ../services/deep-research
+    container_name: preppergpt-deep-research
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/deep-research:/data
+    environment:
+      DEEP_RESEARCH_HOST: "127.0.0.1"
+      DEEP_RESEARCH_PORT: "18041"
+      DEEP_RESEARCH_PUBLIC_BASE_URL: "http://127.0.0.1:18041"
+      DEEP_RESEARCH_MODEL_ID: "deep-research-glm52"
+      DEEP_RESEARCH_MODEL: "${DEEP_RESEARCH_MODEL:-glm52-q4-local}"
+      DEEP_RESEARCH_GLM_BASE_URL: "${GLM52_BASE_URL:-http://127.0.0.1:11441/v1}"
+      DEEP_RESEARCH_SEARXNG_URL: "http://127.0.0.1:18080/search"
+      DEEP_RESEARCH_TIKA_URL: "http://127.0.0.1:9998/tika"
+      DEEP_RESEARCH_LOCAL_APP_CONNECTOR_URL: "http://127.0.0.1:18042"
+
+  local-scheduler:
+    build:
+      context: ../services/local-scheduler
+    container_name: preppergpt-local-scheduler
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/local-scheduler:/data
+      - ../docs:/app/parity-docs:ro
+    environment:
+      LOCAL_SCHEDULER_HOST: "127.0.0.1"
+      LOCAL_SCHEDULER_PORT: "18042"
+      LOCAL_SCHEDULER_PUBLIC_BASE_URL: "http://127.0.0.1:18042"
+      LOCAL_SCHEDULER_DEFAULT_BASE_URL: "http://127.0.0.1:18041/v1"
+      LOCAL_SCHEDULER_DEFAULT_MODEL: "deep-research-glm52"
+      LOCAL_PARITY_DOCS_DIR: "/app/parity-docs"
+
+  playwright-agent:
+    image: mcr.microsoft.com/playwright:v1.58.0-noble
+    container_name: preppergpt-playwright-agent
+    restart: unless-stopped
+    network_mode: host
+    command: npx -y playwright@1.58.0 run-server --port 18045 --host 127.0.0.1
+
+  local-agent:
+    build:
+      context: ../services/local-agent
+    container_name: preppergpt-local-agent
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/local-agent:/data
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:rw
+      - ${XAUTHORITY:-/tmp/.preppergpt-missing-xauthority}:/tmp/.Xauthority:ro
+    environment:
+      LOCAL_AGENT_HOST: "127.0.0.1"
+      LOCAL_AGENT_PORT: "18043"
+      LOCAL_AGENT_PUBLIC_BASE_URL: "http://127.0.0.1:18043"
+      LOCAL_AGENT_MODEL_ID: "local-agent-glm52"
+      LOCAL_AGENT_GLM_MODEL: "glm52-q4-local"
+      LOCAL_AGENT_GLM_BASE_URL: "${GLM52_BASE_URL:-http://127.0.0.1:11441/v1}"
+      LOCAL_AGENT_AUTO_ROUTER_MODEL_ID: "local-auto-router"
+      LOCAL_AGENT_AUTO_ROUTER_FAST_MODEL: "gemma4:12b-256k-gpu"
+      LOCAL_AGENT_AUTO_ROUTER_FAST_BASE_URL: "http://127.0.0.1:11434/v1"
+      LOCAL_AGENT_AUTO_ROUTER_CODE_MODEL: "qwen3.6-35b-a3b:slopcode-cpu-64k"
+      LOCAL_AGENT_AUTO_ROUTER_CODE_BASE_URL: "${SLOCODE_BASE_URL:-http://127.0.0.1:11438/v1}"
+      LOCAL_AGENT_AUTO_ROUTER_RESEARCH_MODEL: "deep-research-glm52"
+      LOCAL_AGENT_AUTO_ROUTER_RESEARCH_BASE_URL: "http://127.0.0.1:18041/v1"
+      LOCAL_AGENT_AUTO_ROUTER_AGENT_MODEL: "local-agent-glm52"
+      LOCAL_AGENT_AUTO_ROUTER_AGENT_BASE_URL: "http://127.0.0.1:18043/v1"
+      LOCAL_AGENT_SEARXNG_URL: "http://127.0.0.1:18080/search"
+      LOCAL_AGENT_TIKA_URL: "http://127.0.0.1:9998/tika"
+      LOCAL_AGENT_SCHEDULER_URL: "http://127.0.0.1:18042"
+      LOCAL_AGENT_PLAYWRIGHT_WS_URL: "ws://127.0.0.1:18045"
+      LOCAL_AGENT_DESKTOP_ENABLED: "${LOCAL_AGENT_DESKTOP_ENABLED:-1}"
+      DISPLAY: "${DISPLAY:-}"
+      WAYLAND_DISPLAY: "${WAYLAND_DISPLAY:-}"
+      XDG_RUNTIME_DIR: "${XDG_RUNTIME_DIR:-/run/user/1000}"
+      XAUTHORITY: "/tmp/.Xauthority"
+
+  local-vision:
+    build:
+      context: ../services/local-vision
+    container_name: preppergpt-local-vision
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/local-vision:/data
+    environment:
+      LOCAL_VISION_HOST: "127.0.0.1"
+      LOCAL_VISION_PORT: "18044"
+      LOCAL_VISION_DEVICE: "${LOCAL_VISION_DEVICE:-cpu}"
+      LOCAL_VISION_OLLAMA_ENABLED: "1"
+      LOCAL_VISION_OLLAMA_MODEL_ID: "local-vision-gemma4-12b"
+      LOCAL_VISION_OLLAMA_MODEL: "gemma4:12b"
+      LOCAL_VISION_OLLAMA_URL: "http://127.0.0.1:11434"
