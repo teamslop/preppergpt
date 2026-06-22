@@ -18,11 +18,17 @@ target scenario is no assistant at all.
 
 ## Install
 
-Install from npm:
+Install and start from npm in one command:
 
 ```bash
-npx preppergpt install --profile balanced
-preppergpt start
+npx --yes preppergpt install --profile balanced --start
+```
+
+Or use two commands:
+
+```bash
+npx --yes preppergpt install --profile balanced
+npx --yes preppergpt start
 ```
 
 Or install globally:
@@ -48,8 +54,8 @@ integration, and run the npm or GitHub install commands inside the WSL2 shell.
 Other profiles:
 
 ```bash
-preppergpt install --profile intelligence
-preppergpt install --profile speed
+npx --yes preppergpt install --profile intelligence
+npx --yes preppergpt install --profile speed
 ```
 
 Open the app at:
@@ -66,7 +72,7 @@ Change them before exposing the machine to any network.
 ```bash
 preppergpt detect
 preppergpt plan --profile balanced
-preppergpt install --profile balanced
+preppergpt install --profile balanced --start
 preppergpt start
 preppergpt stop
 preppergpt status

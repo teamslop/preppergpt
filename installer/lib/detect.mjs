@@ -263,6 +263,43 @@ function detectAmdRocinfoGpus() {
   }));
 }
 
+export function parseLspciMachineLine(line) {
+  const fields = [];
+  const pattern = /"([^"]*)"|(\S+)/g;
+  let match = pattern.exec(line);
+  while (match) {
+    fields.push(match[1] ?? match[2]);
+    match = pattern.exec(line);
+  }
+  return fields;
+}
+
+function isDisplayController(value) {
+  return /^(VGA compatible controller|3D controller|Display controller)$/i.test(value || "");
+}
+
+function isAmdVendor(value) {
+  return /\b(Advanced Micro Devices|AMD|AMD\/ATI|ATI Technologies)\b/i.test(value || "");
+}
+
+export function amdPciGpuFromLspciLine(line, index = 0) {
+  const fields = parseLspciMachineLine(line);
+  const [, className, vendor, device] = fields;
+  if (!isDisplayController(className) || !isAmdVendor(vendor)) {
+    return null;
+  }
+  return {
+    index,
+    vendor: "amd",
+    runtime: "none",
+    name: [vendor, device].filter(Boolean).join(" ").trim() || "AMD GPU",
+    totalVramGb: null,
+    freeVramGb: null,
+    usableVramGb: null,
+    driver: ""
+  };
+}
+
 function detectAmdPciGpus() {
   if (!commandExists("lspci")) {
     return [];
@@ -273,17 +310,8 @@ function detectAmdPciGpus() {
   }
   return result.stdout
     .split(/\n/)
-    .filter((line) => /(VGA compatible controller|3D controller|Display controller)/i.test(line) && /AMD|ATI|Radeon/i.test(line))
-    .map((line, index) => ({
-      index,
-      vendor: "amd",
-      runtime: "none",
-      name: line.replace(/^\S+\s+/, "").replaceAll('"', "").trim() || "AMD GPU",
-      totalVramGb: null,
-      freeVramGb: null,
-      usableVramGb: null,
-      driver: ""
-    }));
+    .map((line, index) => amdPciGpuFromLspciLine(line, index))
+    .filter(Boolean);
 }
 
 function dedupeGpus(gpus) {

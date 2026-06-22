@@ -7,7 +7,7 @@ import { packageRoot, runtimePaths } from "./lib/paths.mjs";
 import { renderInstall } from "./lib/render.mjs";
 import { commandResult, parseArgs, readJson, shellQuote } from "./lib/util.mjs";
 
-const VERSION = "0.1.3";
+const VERSION = "0.1.4";
 
 function usage() {
   return `PrepperGPT ${VERSION}
@@ -15,7 +15,7 @@ function usage() {
 Usage:
   preppergpt detect [--json]
   preppergpt plan --profile balanced|intelligence|speed [--json]
-  preppergpt install --profile balanced|intelligence|speed [--dry-run] [--skip-bundles] [--home PATH]
+  preppergpt install --profile balanced|intelligence|speed [--start] [--dry-run] [--skip-bundles] [--home PATH]
   preppergpt start [--home PATH]
   preppergpt stop [--home PATH]
   preppergpt status [--home PATH] [--json]
@@ -138,6 +138,9 @@ async function commandInstall(flags) {
   const plan = buildPlan(detection, profileFrom(flags));
   if (flags.dry_run) {
     printPlan(plan);
+    if (flags.start) {
+      console.log("\nWould start PrepperGPT after install.");
+    }
     console.log("\nDry run only. No files written.");
     return;
   }
@@ -150,8 +153,14 @@ async function commandInstall(flags) {
   console.log(`Wrote ${paths.envFile}`);
   console.log(`Wrote ${paths.generatedCompose}`);
   console.log(`Wrote ${paths.modelPlan}`);
+  if (flags.start) {
+    runCompose(paths, ["up", "-d"]);
+    console.log("\nPrepperGPT start requested.");
+    console.log("Open http://127.0.0.1:8080");
+    return;
+  }
   console.log("\nNext:");
-  console.log(`  preppergpt start --home ${shellQuote(paths.root)}`);
+  console.log(`  npx --yes preppergpt start --home ${shellQuote(paths.root)}`);
   console.log("  Open http://127.0.0.1:8080");
 }
 
