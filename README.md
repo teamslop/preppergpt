@@ -11,20 +11,28 @@ working network during setup.
 
 ## Install
 
-Until the npm package is published, install from GitHub:
+Install from npm:
+
+```bash
+npx preppergpt install --profile balanced
+preppergpt start
+```
+
+Or install globally:
+
+```bash
+npm install -g preppergpt
+preppergpt install --profile balanced
+preppergpt start
+```
+
+GitHub source install:
 
 ```bash
 git clone https://github.com/teamslop/preppergpt.git
 cd preppergpt
 node bin/preppergpt.js install --profile balanced
 node bin/preppergpt.js start
-```
-
-After npm publication:
-
-```bash
-npx preppergpt install --profile balanced
-preppergpt start
 ```
 
 Other profiles:
@@ -84,7 +92,7 @@ npm publish --access public
 ```
 
 Publishing requires an authenticated npm account with permission to publish the
-currently unclaimed `preppergpt` package name.
+`preppergpt` package.
 
 The source repository is expected at:
 
