@@ -131,16 +131,18 @@
       "contextTokens": 262144,
       "qualityScore": 78,
       "speedScore": 96,
-      "tpsEstimate": "35-90 completion tokens/sec on a modern 16-24 GB NVIDIA GPU",
+      "tpsEstimate": "35-90 completion tokens/sec on a modern 16-24 GB NVIDIA GPU or supported Linux AMD ROCm GPU",
       "requires": {
         "minRamGb": 24,
         "minVramGb": 11,
-        "diskGb": 20
+        "diskGb": 20,
+        "gpuVendors": ["nvidia", "amd"],
+        "requiresRocm": true
       },
       "source": {
         "type": "ollama",
         "model": "gemma4:12b",
-        "description": "Pulled or provided through the local Ollama server."
+        "description": "Pulled or provided through the local Ollama server. AMD hosts use the Ollama ROCm container when ROCm is detected on Linux."
       }
     },
     {
@@ -151,16 +153,18 @@
       "contextTokens": 32768,
       "qualityScore": 76,
       "speedScore": 75,
-      "tpsEstimate": "12-45 completion tokens/sec depending on GPU and quantization",
+      "tpsEstimate": "12-45 completion tokens/sec depending on GPU vendor, ROCm/CUDA readiness, and quantization",
       "requires": {
         "minRamGb": 24,
         "minVramGb": 10,
-        "diskGb": 16
+        "diskGb": 16,
+        "gpuVendors": ["nvidia", "amd"],
+        "requiresRocm": true
       },
       "source": {
         "type": "ollama",
         "model": "qwen2.5-coder:14b",
-        "description": "Ollama coding fallback."
+        "description": "Ollama coding fallback. AMD hosts use the Ollama ROCm container when ROCm is detected on Linux."
       }
     },
     {
@@ -230,7 +234,9 @@
       "requires": {
         "minRamGb": 24,
         "minVramGb": 11,
-        "diskGb": 20
+        "diskGb": 20,
+        "gpuVendors": ["nvidia", "amd"],
+        "requiresRocm": true
       },
       "source": {
         "type": "virtual",
@@ -268,11 +274,13 @@
       "requires": {
         "minRamGb": 32,
         "minVramGb": 16,
-        "diskGb": 60
+        "diskGb": 60,
+        "gpuVendors": ["nvidia", "amd"],
+        "requiresRocm": true
       },
       "source": {
         "type": "manual",
-        "description": "Place Flux model, text encoder, and VAE files in the configured ComfyUI models directory."
+        "description": "Place Flux model, text encoder, and VAE files in the configured ComfyUI models directory. Use a CUDA or Linux ROCm ComfyUI runtime that matches the host GPU."
       }
     },
     {

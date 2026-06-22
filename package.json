@@ -1,6 +1,6 @@
 {
   "name": "preppergpt",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A post-apocalyptic local AI field kit for running a ChatGPT-like experience when hosted services are unavailable.",
   "type": "module",
   "bin": {

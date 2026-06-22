@@ -2,12 +2,12 @@ import fs from "node:fs";
 import http from "node:http";
 import { ensureWhisperBundle, modelDirs, whisperBundleStatus } from "./lib/bundles.mjs";
 import { detectMachine } from "./lib/detect.mjs";
-import { buildPlan, normalizeProfile } from "./lib/planner.mjs";
+import { buildPlan, installSupportError, normalizeProfile } from "./lib/planner.mjs";
 import { packageRoot, runtimePaths } from "./lib/paths.mjs";
 import { renderInstall } from "./lib/render.mjs";
 import { commandResult, parseArgs, readJson, shellQuote } from "./lib/util.mjs";
 
-const VERSION = "0.1.2";
+const VERSION = "0.1.3";
 
 function usage() {
   return `PrepperGPT ${VERSION}
@@ -32,6 +32,22 @@ function printJson(value) {
 
 function profileFrom(flags) {
   return normalizeProfile(flags.profile || flags.mode || "balanced");
+}
+
+function requiredToolStatuses(detection) {
+  return {
+    docker: Boolean(detection.tools?.docker),
+    dockerCompose: Boolean(detection.tools?.dockerCompose),
+    curl: Boolean(detection.tools?.curl),
+    "python3 or python": Boolean(detection.tools?.python3 || detection.tools?.python)
+  };
+}
+
+function assertSupportedInstall(detection) {
+  const message = installSupportError(detection);
+  if (message) {
+    throw new Error(message);
+  }
 }
 
 function composeArgs(paths) {
@@ -88,19 +104,20 @@ async function commandDetect(flags) {
     printJson(detection);
     return;
   }
-  console.log(`Host: ${detection.hostname} (${detection.platform}/${detection.arch})`);
+  console.log(`Host: ${detection.hostname} (${detection.platformKind || detection.platform}/${detection.arch})`);
   console.log(`CPU: ${detection.cpu.cores} cores, ${detection.cpu.model}`);
   console.log(`RAM: ${detection.memory.totalGb} GB total, ${detection.memory.freeGb} GB free`);
   const bestDisk = detection.disks[0];
   console.log(`Disk: ${bestDisk ? `${bestDisk.freeGb.toFixed(1)} GB free at ${bestDisk.mount}` : "not detected"}`);
   if (detection.gpus.length) {
     for (const gpu of detection.gpus) {
-      console.log(`GPU ${gpu.index}: ${gpu.name}, ${gpu.totalVramGb} GB VRAM, ${gpu.freeVramGb} GB free`);
+      const memory = gpu.totalVramGb ? `${gpu.totalVramGb} GB VRAM, ${gpu.freeVramGb ?? "unknown"} GB free` : "VRAM unknown";
+      console.log(`GPU ${gpu.index}: ${gpu.vendor}/${gpu.runtime || "unknown"} ${gpu.name}, ${memory}`);
     }
   } else {
-    console.log("GPU: no NVIDIA GPU detected");
+    console.log("GPU: no supported GPU detected");
   }
-  const missing = Object.entries(detection.tools).filter(([, present]) => !present).map(([tool]) => tool);
+  const missing = Object.entries(requiredToolStatuses(detection)).filter(([, present]) => !present).map(([tool]) => tool);
   console.log(`Tools: ${missing.length ? `missing ${missing.join(", ")}` : "all required tools present"}`);
 }
 
@@ -117,6 +134,7 @@ async function commandPlan(flags) {
 async function commandInstall(flags) {
   const home = flags.home;
   const detection = await detectMachine();
+  assertSupportedInstall(detection);
   const plan = buildPlan(detection, profileFrom(flags));
   if (flags.dry_run) {
     printPlan(plan);
@@ -140,6 +158,7 @@ async function commandInstall(flags) {
 async function commandSwitchProfile(flags) {
   const paths = runtimePaths(flags.home);
   const detection = await detectMachine();
+  assertSupportedInstall(detection);
   const plan = buildPlan(detection, profileFrom(flags));
   renderInstall(plan, detection, { home: paths.root });
   console.log(`Switched PrepperGPT to ${plan.profile}.`);
@@ -199,9 +218,23 @@ async function commandDoctor(flags) {
   const plan = buildPlan(detection, profileFrom(flags));
   printPlan(plan);
   console.log("\nDoctor:");
-  const requiredTools = ["docker", "dockerCompose", "curl", "python3"];
-  for (const tool of requiredTools) {
-    console.log(`  ${tool}: ${detection.tools[tool] ? "ok" : "missing"}`);
+  const supportError = installSupportError(detection);
+  if (supportError) {
+    console.log(`  platform: unsupported (${supportError})`);
+  } else {
+    console.log(`  platform: ok (${detection.platformKind || detection.platform})`);
+  }
+  for (const [tool, present] of Object.entries(requiredToolStatuses(detection))) {
+    console.log(`  ${tool}: ${present ? "ok" : "missing"}`);
+  }
+  const amdGpu = detection.gpus.some((gpu) => gpu.vendor === "amd");
+  const nvidiaGpu = detection.gpus.some((gpu) => gpu.vendor === "nvidia");
+  if (nvidiaGpu) {
+    console.log(`  nvidia cuda: ${detection.tools.nvidiaSmi ? "ok" : "missing nvidia-smi"}`);
+  }
+  if (amdGpu) {
+    const rocmReady = detection.tools.rocmSmi || detection.tools.rocminfo;
+    console.log(`  amd rocm: ${rocmReady ? "ok" : "missing rocm-smi or rocminfo"}`);
   }
   for (const [port, entry] of Object.entries(detection.ports)) {
     if (!entry.free) {

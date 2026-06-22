@@ -1,14 +1,19 @@
 # Hardware Guide
 
-PrepperGPT works best on Linux with an NVIDIA GPU and enough NVMe space for
-model weights. It is designed for post-apocalyptic or long-duration outage
-scenarios, so the high-end GLM tiers deliberately favor local availability and
-answer quality over hosted-service latency.
+PrepperGPT works best on Linux with a supported GPU and enough NVMe space for
+model weights. NVIDIA CUDA is supported, Linux AMD ROCm is supported when
+`rocm-smi` or `rocminfo` is available, and CPU fallback remains available for
+smaller routes. Windows users should run PrepperGPT inside WSL2; native Windows
+installs are rejected with WSL2 guidance. It is designed for post-apocalyptic or
+long-duration outage scenarios, so the high-end GLM tiers deliberately favor
+local availability and answer quality over hosted-service latency.
 
 Recommended starting points:
 
 - Speed profile: 16 GB RAM, 8-12 GB VRAM, 40 GB free disk.
 - Balanced profile: 32-64 GB RAM, 12-24 GB VRAM, 120 GB free disk.
+- Linux AMD ROCm profile: 32-128 GB RAM, 12-24+ GB AMD VRAM, ROCm tools
+  installed, and Docker access to `/dev/kfd` and `/dev/dri`.
 - Intelligence profile: 96 GB RAM or more, fast NVMe, and hundreds of GB free
   for GLM 5.2 Q4 or similar large weights.
 - Enterprise 8-bit GLM tier: 256 GB RAM or more, 48-80 GB VRAM preferred,
@@ -27,6 +32,9 @@ for situations where there is no cloud model to fall back to.
 | --- | --- | --- |
 | Basic CPU laptop | 16 GB RAM, no GPU, 80 GB disk | `local-chatgpt-auto`, `llama3.1:8b`, `local-vision-moondream2`, bundled Whisper |
 | Mid NVIDIA | 64 GB RAM, 12 GB usable VRAM, 250 GB disk | Gemma fast lane, Qwen coder fallback, local vision, bundled Whisper |
+| Mid AMD ROCm | 64 GB RAM, 12-24 GB usable AMD VRAM, ROCm on Linux, 250 GB disk | Ollama ROCm Gemma fast lane, Qwen coder fallback, local vision through Ollama, bundled Whisper |
+| AMD without ROCm | 32-64 GB RAM, AMD GPU detected, no ROCm tools | CPU-compatible routes plus a doctor warning to install ROCm for acceleration |
+| Windows WSL2 | 32+ GB RAM, Docker Desktop WSL integration, WSL2 Ubuntu | Linux-style install inside WSL2; native Windows install is rejected |
 | High NVIDIA | 128 GB RAM, 24 GB VRAM, 750 GB NVMe | GLM 5.2 Q4 configured, Slopcode/Qwen configured, Gemma fast lane, Flux configured |
 | Full PrepperGPT rig | 128+ GB RAM, 24+ GB VRAM, 1 TB NVMe, GLM/Slopcode/Flux files present | GLM 5.2 Q4 primary, Slopcode coding, Gemma fast lane, Deep Research, Agent, Vision, Flux, Whisper |
 | Enterprise 8-bit GLM rig | 256+ GB RAM, 48-80+ GB VRAM preferred, 1.5-2 TB fast NVMe | `glm52-q8-local` primary for Max Intelligence, `glm52-q4-local` fallback, Slopcode/Qwen coding, Gemma fast lane, full sidecar stack |

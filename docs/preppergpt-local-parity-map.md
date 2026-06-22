@@ -14,5 +14,9 @@ local use when hosted AI services are unavailable:
 - Local vision sidecar at `http://127.0.0.1:18044/v1`
 - SearXNG, Tika, Jupyter, and ComfyUI support services
 
+Hardware support is additive: Linux NVIDIA uses CUDA container access, Linux AMD
+uses ROCm when available, CPU fallback remains available, and Windows support is
+through WSL2 rather than native Windows.
+
 The local goal is functional local parity for common ChatGPT workflows, not
 hosted frontier-model quality or cloud account continuity.

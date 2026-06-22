@@ -1,18 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPlan, loadCatalog, normalizeProfile } from "../installer/lib/planner.mjs";
+import { buildPlan, installSupportError, loadCatalog, normalizeProfile } from "../installer/lib/planner.mjs";
 
 const catalog = loadCatalog();
 
 function detection(overrides = {}) {
   return {
     platform: "linux",
+    platformKind: "linux",
+    isWsl2: false,
     arch: "x64",
     cpu: { cores: 24, model: "fixture" },
     memory: { totalGb: 128, freeGb: 96 },
     disks: [{ path: "/models", mount: "/models", freeGb: 1000, isNvme: true }],
     gpus: [{ index: 0, vendor: "nvidia", name: "fixture gpu", totalVramGb: 24, freeVramGb: 22, usableVramGb: 19.6 }],
-    tools: { docker: true, dockerCompose: true, curl: true, python3: true, tmux: true, git: true, nvidiaSmi: true },
+    tools: {
+      docker: true,
+      dockerCompose: true,
+      curl: true,
+      python3: true,
+      python: false,
+      tmux: true,
+      git: true,
+      nvidiaSmi: true,
+      rocmSmi: false,
+      rocminfo: false
+    },
     ports: {},
     ...overrides
   };
@@ -85,5 +98,86 @@ test("speed plan can fall back on small Ollama route for CPU-only machines", () 
   );
   assert.equal(plan.defaultModel, "local-chatgpt-auto");
   assert.equal(plan.selected.fast.id, "llama3.1:8b");
-  assert.ok(plan.warnings.some((warning) => warning.includes("No NVIDIA GPU")));
+  assert.ok(plan.warnings.some((warning) => warning.includes("No supported GPU acceleration")));
+});
+
+test("AMD ROCm machines can use accelerated Ollama routes", () => {
+  const plan = buildPlan(
+    detection({
+      gpus: [{ index: 0, vendor: "amd", runtime: "rocm", name: "Radeon fixture", totalVramGb: 24, freeVramGb: 22, usableVramGb: 19.6 }],
+      tools: {
+        docker: true,
+        dockerCompose: true,
+        curl: true,
+        python3: true,
+        python: false,
+        tmux: true,
+        git: true,
+        nvidiaSmi: false,
+        rocmSmi: true,
+        rocminfo: true
+      }
+    }),
+    "speed",
+    catalog
+  );
+  assert.equal(plan.selected.fast.id, "gemma4:12b-256k-gpu");
+  assert.equal(plan.selected.coding.id, "qwen2.5-coder:14b");
+  assert.ok(!plan.warnings.some((warning) => warning.includes("No supported GPU acceleration")));
+});
+
+test("AMD without ROCm falls back to CPU-compatible routes with ROCm warning", () => {
+  const plan = buildPlan(
+    detection({
+      gpus: [{ index: 0, vendor: "amd", runtime: "none", name: "Radeon fixture", totalVramGb: 24, freeVramGb: 22, usableVramGb: 19.6 }],
+      tools: {
+        docker: true,
+        dockerCompose: true,
+        curl: true,
+        python3: true,
+        python: false,
+        tmux: true,
+        git: true,
+        nvidiaSmi: false,
+        rocmSmi: false,
+        rocminfo: false
+      }
+    }),
+    "speed",
+    catalog
+  );
+  assert.equal(plan.selected.fast.id, "llama3.1:8b");
+  assert.ok(plan.warnings.some((warning) => warning.includes("AMD GPU detected without ROCm")));
+});
+
+test("WSL2 is supported but AMD acceleration remains Linux ROCm only", () => {
+  const plan = buildPlan(
+    detection({
+      platformKind: "wsl2",
+      isWsl2: true,
+      gpus: [{ index: 0, vendor: "amd", runtime: "rocm", name: "Radeon fixture", totalVramGb: 24, freeVramGb: 22, usableVramGb: 19.6 }],
+      tools: {
+        docker: true,
+        dockerCompose: true,
+        curl: true,
+        python3: true,
+        python: false,
+        tmux: true,
+        git: true,
+        nvidiaSmi: false,
+        rocmSmi: true,
+        rocminfo: true
+      }
+    }),
+    "speed",
+    catalog
+  );
+  assert.equal(installSupportError({ platform: "linux", platformKind: "wsl2" }), null);
+  assert.equal(plan.selected.fast.id, "llama3.1:8b");
+  assert.ok(plan.warnings.some((warning) => warning.includes("AMD GPU acceleration is supported on Linux ROCm hosts")));
+});
+
+test("native Windows install is rejected with WSL2 guidance", () => {
+  const message = installSupportError(detection({ platform: "win32", platformKind: "windows-native" }));
+  assert.match(message, /WSL2/);
 });

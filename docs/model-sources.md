@@ -2,7 +2,9 @@
 
 PrepperGPT separates routing from model licensing and distribution.
 
-- Ollama models are pulled by the local Ollama runtime when available.
+- Ollama models are pulled by the local Ollama runtime when available. NVIDIA
+  hosts use the standard Ollama image; Linux AMD ROCm hosts use
+  `ollama/ollama:rocm` with `/dev/kfd` and `/dev/dri` exposed.
 - Whisper Base STT is installer-cached from `Systran/faster-whisper-base`
   under the local PrepperGPT model directory and mounted into OpenWebUI.
 - Hugging Face vision models are downloaded by the local vision sidecar.

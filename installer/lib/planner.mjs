@@ -23,17 +23,56 @@ function bestDisk(detection) {
   return detection.disks?.[0] || { freeGb: 0, isNvme: false, path: "" };
 }
 
-function bestGpu(detection) {
-  return [...(detection.gpus || [])].sort((a, b) => b.usableVramGb - a.usableVramGb)[0] || null;
+function detectedPlatformKind(detection) {
+  if (detection.platformKind) {
+    return detection.platformKind;
+  }
+  if (detection.platform === "win32") {
+    return "windows-native";
+  }
+  if (detection.platform === "darwin") {
+    return "macos";
+  }
+  return detection.platform || "unknown";
+}
+
+function bestGpu(detection, vendors = null) {
+  const allowed = vendors ? new Set(vendors) : null;
+  return [...(detection.gpus || [])]
+    .filter((gpu) => !allowed || allowed.has(gpu.vendor))
+    .sort((a, b) => (b.usableVramGb || 0) - (a.usableVramGb || 0))[0] || null;
+}
+
+function gpuVendorLabel(vendors) {
+  if (!vendors?.length) {
+    return "supported";
+  }
+  return vendors.map((vendor) => (vendor === "nvidia" ? "NVIDIA" : vendor === "amd" ? "AMD" : vendor)).join("/");
+}
+
+function hasRocmRuntime(detection) {
+  return Boolean(detection.tools?.rocmSmi || detection.tools?.rocminfo);
+}
+
+export function installSupportError(detection) {
+  if (detectedPlatformKind(detection) === "windows-native") {
+    return "Native Windows install is not supported yet. Install PrepperGPT inside WSL2 so Docker, Linux paths, and local model services use the supported Linux runtime.";
+  }
+  return null;
 }
 
 function requirementFailures(model, detection) {
   const requires = model.requires || {};
   const disk = bestDisk(detection);
-  const gpu = bestGpu(detection);
+  const platformKind = detectedPlatformKind(detection);
+  const gpuVendors = requires.gpuVendors || null;
+  const gpu = bestGpu(detection, gpuVendors);
   const failures = [];
   if (requires.platforms && !requires.platforms.includes(detection.platform)) {
     failures.push(`requires platform ${requires.platforms.join(", ")}`);
+  }
+  if (requires.platformKinds && !requires.platformKinds.includes(platformKind)) {
+    failures.push(`requires platform kind ${requires.platformKinds.join(", ")}`);
   }
   if (requires.minRamGb && detection.memory.totalGb < requires.minRamGb) {
     failures.push(`requires ${requires.minRamGb} GB RAM`);
@@ -44,11 +83,22 @@ function requirementFailures(model, detection) {
   if (requires.nvme && disk.freeGb >= (requires.diskGb || 0) && !disk.isNvme) {
     failures.push("strongly prefers NVMe for acceptable load time");
   }
+  if (requires.gpuVendors && detection.gpus?.length && !gpu) {
+    failures.push(`requires ${gpuVendorLabel(requires.gpuVendors)} GPU`);
+  }
   if (requires.gpu && !gpu) {
-    failures.push("requires NVIDIA GPU");
+    failures.push(`requires ${gpuVendorLabel(requires.gpuVendors)} GPU`);
   }
   if (requires.minVramGb && (!gpu || gpu.usableVramGb < requires.minVramGb)) {
-    failures.push(`requires about ${requires.minVramGb} GB usable VRAM`);
+    failures.push(`requires ${gpuVendorLabel(requires.gpuVendors)} GPU with about ${requires.minVramGb} GB usable VRAM`);
+  }
+  if (requires.requiresRocm && gpu?.vendor === "amd") {
+    if (platformKind !== "linux") {
+      failures.push("requires a Linux ROCm host for AMD GPU acceleration");
+    }
+    if (gpu.runtime !== "rocm" || !hasRocmRuntime(detection)) {
+      failures.push("requires ROCm runtime tools for AMD GPU acceleration");
+    }
   }
   return failures;
 }
@@ -116,9 +166,16 @@ export function buildPlan(detection, requestedProfile = "balanced", catalog = lo
     }));
 
   const warnings = [];
+  const installError = installSupportError(detection);
+  if (installError) {
+    warnings.push(installError);
+  }
   const missingTools = Object.entries(detection.tools || {})
-    .filter(([tool, present]) => ["docker", "dockerCompose", "curl", "python3"].includes(tool) && !present)
+    .filter(([tool, present]) => ["docker", "dockerCompose", "curl"].includes(tool) && !present)
     .map(([tool]) => tool);
+  if (!detection.tools?.python3 && !detection.tools?.python) {
+    missingTools.push("python3 or python");
+  }
   if (missingTools.length) {
     warnings.push(`Missing required tools: ${missingTools.join(", ")}`);
   }
@@ -128,8 +185,18 @@ export function buildPlan(detection, requestedProfile = "balanced", catalog = lo
   if (occupiedPorts.length) {
     warnings.push(`Ports already in use: ${occupiedPorts.join(", ")}`);
   }
-  if (!detection.gpus?.length) {
-    warnings.push("No NVIDIA GPU detected; CPU fallback will be much slower.");
+  const acceleratedGpu = (detection.gpus || []).find(
+    (gpu) => gpu.vendor === "nvidia" || (gpu.vendor === "amd" && gpu.runtime === "rocm" && detectedPlatformKind(detection) === "linux")
+  );
+  if (!acceleratedGpu) {
+    warnings.push("No supported GPU acceleration detected; CPU fallback will be much slower.");
+  }
+  const amdWithoutRocm = (detection.gpus || []).some((gpu) => gpu.vendor === "amd" && gpu.runtime !== "rocm");
+  if (amdWithoutRocm) {
+    warnings.push("AMD GPU detected without ROCm; install ROCm on Linux to enable AMD acceleration.");
+  }
+  if ((detection.gpus || []).some((gpu) => gpu.vendor === "amd") && detectedPlatformKind(detection) === "wsl2") {
+    warnings.push("AMD GPU acceleration is supported on Linux ROCm hosts; WSL2 installs will use CPU fallback unless an external AMD endpoint is provided.");
   }
   if (manualAssets.length) {
     warnings.push("Some selected high-quality routes need manual model files or already-running external endpoints.");

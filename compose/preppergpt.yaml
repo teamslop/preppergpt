@@ -88,7 +88,7 @@ services:
       PORT: "${PREPPERGPT_PORT:-8080}"
 
   ollama:
-    image: ollama/ollama:latest
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
     container_name: preppergpt-ollama
     restart: unless-stopped
     network_mode: host
@@ -187,9 +187,6 @@ services:
     network_mode: host
     volumes:
       - ${PREPPERGPT_DATA_DIR:?set PREPPERGPT_DATA_DIR}/local-agent:/data
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:rw
-      - ${XAUTHORITY:-/tmp/.preppergpt-missing-xauthority}:/tmp/.Xauthority:ro
     environment:
       LOCAL_AGENT_HOST: "127.0.0.1"
       LOCAL_AGENT_PORT: "18043"
@@ -210,7 +207,7 @@ services:
       LOCAL_AGENT_TIKA_URL: "http://127.0.0.1:9998/tika"
       LOCAL_AGENT_SCHEDULER_URL: "http://127.0.0.1:18042"
       LOCAL_AGENT_PLAYWRIGHT_WS_URL: "ws://127.0.0.1:18045"
-      LOCAL_AGENT_DESKTOP_ENABLED: "${LOCAL_AGENT_DESKTOP_ENABLED:-1}"
+      LOCAL_AGENT_DESKTOP_ENABLED: "${LOCAL_AGENT_DESKTOP_ENABLED:-0}"
       DISPLAY: "${DISPLAY:-}"
       WAYLAND_DISPLAY: "${WAYLAND_DISPLAY:-}"
       XDG_RUNTIME_DIR: "${XDG_RUNTIME_DIR:-/run/user/1000}"

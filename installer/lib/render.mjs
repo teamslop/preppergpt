@@ -9,10 +9,39 @@ function secret(bytes = 24) {
   return crypto.randomBytes(bytes).toString("hex");
 }
 
+function platformKind(detection) {
+  return detection.platformKind || (detection.platform === "win32" ? "windows-native" : detection.platform || "unknown");
+}
+
+function primaryAccelerator(detection) {
+  const gpus = detection.gpus || [];
+  const nvidia = gpus.find((gpu) => gpu.vendor === "nvidia");
+  if (nvidia) {
+    return { vendor: "nvidia", runtime: "cuda" };
+  }
+  const amdRocm = gpus.find((gpu) => gpu.vendor === "amd" && gpu.runtime === "rocm");
+  if (amdRocm && platformKind(detection) === "linux") {
+    return { vendor: "amd", runtime: "rocm" };
+  }
+  return { vendor: "cpu", runtime: "cpu" };
+}
+
+function desktopIntegrationEnabled(detection) {
+  const explicit = String(process.env.LOCAL_AGENT_DESKTOP_ENABLED || "").toLowerCase();
+  if (["0", "false", "no", "off"].includes(explicit)) {
+    return false;
+  }
+  const kind = platformKind(detection);
+  const platformSupportsDesktop = kind === "linux" || kind === "wsl2";
+  const hasDisplay = Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
+  return platformSupportsDesktop && hasDisplay && explicit !== "0";
+}
+
 function envFile(plan, paths, detection) {
   const dataDir = process.env.PREPPERGPT_DATA_DIR || paths.dataDir;
   const modelsDir = process.env.PREPPERGPT_MODELS_DIR || `${dataDir}/models`;
   const whisperHostDir = path.join(modelsDir, "whisper", "base");
+  const accelerator = primaryAccelerator(detection);
   const selectedReasoningModel = plan.selected?.reasoning?.id || "glm52-q4-local";
   const selectedGlmBaseUrl =
     selectedReasoningModel === "glm52-q8-local"
@@ -33,7 +62,10 @@ function envFile(plan, paths, detection) {
     PREPPERGPT_MODEL_ORDER_LIST: JSON.stringify(plan.routeIds),
     PREPPERGPT_GLM_MODEL: selectedReasoningModel,
     PREPPERGPT_GLM_BASE_URL: selectedGlmBaseUrl,
-    PREPPERGPT_DOCKER_GPUS: detection.gpus?.length ? "all" : "",
+    PREPPERGPT_GPU_VENDOR: accelerator.vendor,
+    PREPPERGPT_ACCELERATOR: accelerator.runtime,
+    PREPPERGPT_DOCKER_GPUS: accelerator.vendor === "nvidia" ? "all" : "",
+    OLLAMA_IMAGE: accelerator.vendor === "amd" ? "ollama/ollama:rocm" : "ollama/ollama:latest",
     WEBUI_NAME: "PrepperGPT",
     WEBUI_ADMIN_EMAIL: process.env.WEBUI_ADMIN_EMAIL || "admin@preppergpt.local",
     WEBUI_ADMIN_PASSWORD: adminPassword,
@@ -53,12 +85,37 @@ function envFile(plan, paths, detection) {
 
 function generatedCompose(plan, detection) {
   const modelOrder = JSON.stringify(plan.routeIds);
-  const gpuBlock = detection.gpus?.length
-    ? [
+  const accelerator = primaryAccelerator(detection);
+  const gpuBlock =
+    accelerator.vendor === "nvidia"
+      ? [
         "  ollama:",
         "    gpus: all",
         "  local-vision:",
         "    gpus: all"
+      ]
+      : accelerator.vendor === "amd"
+        ? [
+            "  ollama:",
+            "    devices:",
+            "      - /dev/kfd:/dev/kfd",
+            "      - /dev/dri:/dev/dri",
+            "    group_add:",
+            "      - video",
+            "      - render",
+            "    security_opt:",
+            "      - seccomp=unconfined"
+          ]
+        : [];
+  const desktopBlock = desktopIntegrationEnabled(detection)
+    ? [
+        "  local-agent:",
+        "    environment:",
+        "      LOCAL_AGENT_DESKTOP_ENABLED: \"1\"",
+        "    volumes:",
+        "      - /tmp/.X11-unix:/tmp/.X11-unix:rw",
+        "      - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:rw",
+        "      - ${XAUTHORITY:-/tmp/.preppergpt-missing-xauthority}:/tmp/.Xauthority:ro"
       ]
     : [];
   return [
@@ -68,7 +125,8 @@ function generatedCompose(plan, detection) {
     `      DEFAULT_MODELS: "${plan.defaultModel}"`,
     `      MODEL_ORDER_LIST: '${modelOrder.replaceAll("'", "''")}'`,
     `      TASK_MODEL: "${plan.selected.fast?.id || plan.defaultModel}"`,
-    ...gpuBlock
+    ...gpuBlock,
+    ...desktopBlock
   ].join("\n") + "\n";
 }
 
