@@ -3780,11 +3780,11 @@ def local_parity_recommended_model(feature_family: str, primary_models: list[str
         return models[0] if models else None
 
     if "codex" in family or "software" in family or "code" in family:
-        return first_available(["slopcode-qwen-coder-local", "local-agent-glm52", "glm52-q4-local"])
+        return first_available(["slopcode-qwen-coder-local", "local-agent-glm52", "glm52-q8-local", "glm52-q4-local"])
     if "deep research" in family:
-        return first_available(["deep-research-glm52", "glm52-q4-local"])
+        return first_available(["deep-research-glm52", "glm52-q8-local", "glm52-q4-local"])
     if "developer mode" in family or "mcp" in family:
-        return first_available(["local-agent-glm52", "local-chatgpt-auto", "glm52-q4-local"])
+        return first_available(["local-agent-glm52", "local-chatgpt-auto", "glm52-q8-local", "glm52-q4-local"])
     if "image generation" in family:
         return first_available(["flux-2-klein-9b-fp8"])
     if "image editing" in family:
@@ -3794,16 +3794,16 @@ def local_parity_recommended_model(feature_family: str, primary_models: list[str
     if "voice" in family or "record mode" in family:
         return first_available(["whisper-base-bundled", "whisper-large-v3", "local-agent-glm52"])
     if "shopping" in family:
-        return first_available(["glm52-shopping-research-local", "glm52-q4-local"])
+        return first_available(["glm52-shopping-research-local", "glm52-q8-local", "glm52-q4-local"])
     if "job search" in family or "resume" in family or "finance" in family:
-        return first_available(["local-agent-glm52", "local-chatgpt-auto", "glm52-q4-local"])
+        return first_available(["local-agent-glm52", "local-chatgpt-auto", "glm52-q8-local", "glm52-q4-local"])
     if "study" in family:
-        return first_available(["glm52-study-coach-local", "glm52-q4-local"])
+        return first_available(["glm52-study-coach-local", "glm52-q8-local", "glm52-q4-local"])
     if "advanced reasoning" in family or "long context" in family:
-        return first_available(["glm52-q4-local"])
+        return first_available(["glm52-q8-local", "glm52-q4-local"])
     if "data analysis" in family or "canvas" in family or "memory" in family or "agent mode" in family:
-        return first_available(["local-agent-glm52", "glm52-q4-local"])
-    return first_available(["local-chatgpt-auto", "local-auto-router", "local-instant-gemma4-12b", "glm52-q4-local"])
+        return first_available(["local-agent-glm52", "glm52-q8-local", "glm52-q4-local"])
+    return first_available(["local-chatgpt-auto", "local-auto-router", "local-instant-gemma4-12b", "glm52-q8-local", "glm52-q4-local"])
 
 
 def local_parity_route_for_model(feature_family: str, model: str | None, profiles: dict) -> dict:
@@ -3833,10 +3833,10 @@ def local_parity_route_for_model(feature_family: str, model: str | None, profile
         route_id = "slopcode_tiny"
         route_type = "benchmarked_chat_route"
         action = "Select the Slopcode/Qwen coding model in OpenWebUI for local software work."
-    elif model_text == "glm52-q4-local" or "advanced reasoning" in family or "long context" in family:
+    elif model_text in {"glm52-q8-local", "glm52-q4-local"} or "advanced reasoning" in family or "long context" in family:
         route_id = "glm_tiny"
         route_type = "benchmarked_chat_route"
-        action = "Select GLM 5.2 Q4 in OpenWebUI for private long-context reasoning."
+        action = "Select the best available local GLM 5.2 route in OpenWebUI for private long-context reasoning."
     elif "shopping" in model_text:
         route_id = "glm52_shopping_research_preset"
         route_type = "chat_preset"
@@ -4462,9 +4462,9 @@ WORKFLOW_RECIPE_BLUEPRINTS = [
         "id": "private-long-context-workflow",
         "task_id": "private-long-context-reasoning",
         "title": "Private long-context reasoning with GLM 5.2",
-        "openwebui_entrypoint": "Model picker -> glm52-q4-local",
+        "openwebui_entrypoint": "Model picker -> glm52-q8-local on enterprise rigs, otherwise glm52-q4-local",
         "steps": [
-            "Select glm52-q4-local when privacy and context length matter more than latency.",
+            "Select glm52-q8-local on enterprise hardware when maximum local quality matters; otherwise select glm52-q4-local.",
             "Keep the prompt bounded when possible; use files/projects for reusable context.",
             "Use fast local routes for quick follow-ups when GLM latency is not needed.",
         ],
@@ -5293,6 +5293,7 @@ def local_parity_dashboard() -> dict:
         },
         "urls": {
             "openwebui": "http://127.0.0.1:8080",
+            "glm52_q8_openai": "http://127.0.0.1:11446/v1",
             "glm52_openai": "http://127.0.0.1:11441/v1",
             "slopcode_openai": "http://127.0.0.1:11438/v1",
             "deep_research_openai": "http://127.0.0.1:18041/v1",
@@ -5306,6 +5307,7 @@ def local_parity_dashboard() -> dict:
         },
         "primary_models": [
             {"id": "local-chatgpt-auto", "route": "fast_router", "best_for": "default local ChatGPT-like routing"},
+            {"id": "glm52-q8-local", "route": "glm_tiny", "context_tokens": 65536, "best_for": "enterprise 8-bit private long-context reasoning"},
             {"id": "glm52-q4-local", "route": "glm_tiny", "context_tokens": 65536, "best_for": "private long-context reasoning"},
             {
                 "id": "qwen3.6-35b-a3b:slopcode-cpu-64k",
@@ -6660,7 +6662,7 @@ def local_parity_audit_html() -> str:
       {metric("Starter prompts", f"{starter_summary.get('ready_starter_prompts')}/{starter_summary.get('starter_prompts')}", "prompt-library items")}
       {metric("Current release", f"{source_freshness_summary.get('current_release_covered_families')}/{source_freshness_summary.get('current_release_expected_families')}", "families")}
       {metric("Release evidence", f"{source_freshness_summary.get('current_release_covered_evidence_terms')}/{source_freshness_summary.get('current_release_expected_evidence_terms')}", "terms")}
-      {metric("Primary GLM route", "glm52-q4-local", "local long-context model")}
+      {metric("Primary GLM route", "glm52-q8-local / glm52-q4-local", "local long-context model")}
       {metric("Scope exclusions", f"{frontier_summary.get('excluded_from_local_goal_items')}/{frontier_summary.get('boundary_items')}", "hosted capabilities")}
       {metric("Evidence artifacts", f"{evidence_summary.get('ready_artifacts')}/{evidence_summary.get('artifacts')}", "privacy-safe proof")}
       {metric("Quality evals", scorecard_summary.get('quality_evals'), "executable")}
@@ -9653,7 +9655,7 @@ def local_parity_gap_report_html() -> str:
       {metric("Quality evals", summary.get('quality_evals'), "executable catalog")}
       {metric("Continuity", summary.get('continuity_status'), "fallback status")}
       {metric("Sources", summary.get('source_entries'), "source snapshot")}
-      {metric("Primary GLM route", "glm52-q4-local", "local long-context model")}
+      {metric("Primary GLM route", "glm52-q8-local / glm52-q4-local", "local long-context model")}
       {metric("GLM context", "65,536", "tokens")}
       {metric("Scope exclusions", f"{frontier_summary.get('excluded_from_local_goal_items')}/{frontier_summary.get('boundary_items')}", "hosted capabilities")}
     </section>
@@ -12797,7 +12799,7 @@ def local_model_route_recommendations() -> dict:
         "glm_tiny": {
             "title": "Private GLM 5.2 reasoning route",
             "benchmark_suite": "glm_tiny",
-            "default_model": "glm52-q4-local",
+            "default_model": "glm52-q8-local or glm52-q4-local",
             "target_tps": 0.1,
             "best_for": [
                 "private long-context reasoning",

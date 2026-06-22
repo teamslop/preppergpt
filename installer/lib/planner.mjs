@@ -62,7 +62,9 @@ function chooseFirst(candidates, models, detection) {
       continue;
     }
     const failures = requirementFailures(model, detection);
-    if (failures.length === 0 || model.source?.type === "manual" || model.source?.type === "external") {
+    const canUseExternalFallback =
+      ["manual", "external"].includes(model.source?.type) && !model.source?.requiresHardwareFit;
+    if (failures.length === 0 || canUseExternalFallback) {
       return { model, skipped };
     }
     skipped.push({ id, reasons: failures });
@@ -91,8 +93,9 @@ export function buildPlan(detection, requestedProfile = "balanced", catalog = lo
     }
   }
 
+  const defaultModel = selected.chat?.id || priorities.defaultModel;
   const routeIds = unique([
-    priorities.defaultModel,
+    defaultModel,
     selected.chat?.id,
     selected.fast?.id,
     selected.reasoning?.id,
@@ -136,7 +139,7 @@ export function buildPlan(detection, requestedProfile = "balanced", catalog = lo
     generatedAt: new Date().toISOString(),
     profile,
     profileLabel: priorities.label,
-    defaultModel: priorities.defaultModel,
+    defaultModel,
     routeIds,
     selected,
     skipped,
@@ -144,7 +147,7 @@ export function buildPlan(detection, requestedProfile = "balanced", catalog = lo
     estimates: estimatePlan(profile, selected),
     env: {
       PREPPERGPT_PROFILE: profile,
-      PREPPERGPT_DEFAULT_MODEL: priorities.defaultModel,
+      PREPPERGPT_DEFAULT_MODEL: defaultModel,
       PREPPERGPT_MODEL_ORDER_LIST: JSON.stringify(routeIds)
     },
     warnings

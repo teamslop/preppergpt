@@ -43,6 +43,36 @@ test("intelligence plan prioritizes GLM 5.2 long context", () => {
   assert.ok(plan.manualAssets.some((asset) => asset.id === "glm52-q4-local"));
 });
 
+test("enterprise intelligence plan upgrades to GLM 5.2 Q8 when hardware fits", () => {
+  const plan = buildPlan(
+    detection({
+      memory: { totalGb: 256, freeGb: 180 },
+      disks: [{ path: "/models", mount: "/models", freeGb: 1800, isNvme: true }],
+      gpus: [{ index: 0, vendor: "nvidia", name: "enterprise gpu", totalVramGb: 80, freeVramGb: 70, usableVramGb: 65 }]
+    }),
+    "intelligence",
+    catalog
+  );
+  assert.equal(plan.defaultModel, "glm52-q8-local");
+  assert.equal(plan.selected.chat.id, "glm52-q8-local");
+  assert.equal(plan.selected.reasoning.id, "glm52-q8-local");
+  assert.ok(plan.routeIds.includes("glm52-q8-local"));
+});
+
+test("enterprise balanced plan keeps auto default but routes hard reasoning to Q8", () => {
+  const plan = buildPlan(
+    detection({
+      memory: { totalGb: 256, freeGb: 180 },
+      disks: [{ path: "/models", mount: "/models", freeGb: 1800, isNvme: true }],
+      gpus: [{ index: 0, vendor: "nvidia", name: "enterprise gpu", totalVramGb: 80, freeVramGb: 70, usableVramGb: 65 }]
+    }),
+    "balanced",
+    catalog
+  );
+  assert.equal(plan.defaultModel, "local-chatgpt-auto");
+  assert.equal(plan.selected.reasoning.id, "glm52-q8-local");
+});
+
 test("speed plan can fall back on small Ollama route for CPU-only machines", () => {
   const plan = buildPlan(
     detection({

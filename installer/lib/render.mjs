@@ -13,6 +13,11 @@ function envFile(plan, paths, detection) {
   const dataDir = process.env.PREPPERGPT_DATA_DIR || paths.dataDir;
   const modelsDir = process.env.PREPPERGPT_MODELS_DIR || `${dataDir}/models`;
   const whisperHostDir = path.join(modelsDir, "whisper", "base");
+  const selectedReasoningModel = plan.selected?.reasoning?.id || "glm52-q4-local";
+  const selectedGlmBaseUrl =
+    selectedReasoningModel === "glm52-q8-local"
+      ? process.env.GLM52_Q8_BASE_URL || "http://127.0.0.1:11446/v1"
+      : process.env.GLM52_BASE_URL || "http://127.0.0.1:11441/v1";
   const adminPassword = process.env.PREPPERGPT_ADMIN_PASSWORD || secret(18);
   const jupyterToken = process.env.JUPYTER_TOKEN || secret(18);
   const searxngSecret = process.env.SEARXNG_SECRET_KEY || secret(24);
@@ -26,6 +31,8 @@ function envFile(plan, paths, detection) {
     PREPPERGPT_PORT: process.env.PREPPERGPT_PORT || "8080",
     PREPPERGPT_DEFAULT_MODEL: plan.defaultModel,
     PREPPERGPT_MODEL_ORDER_LIST: JSON.stringify(plan.routeIds),
+    PREPPERGPT_GLM_MODEL: selectedReasoningModel,
+    PREPPERGPT_GLM_BASE_URL: selectedGlmBaseUrl,
     PREPPERGPT_DOCKER_GPUS: detection.gpus?.length ? "all" : "",
     WEBUI_NAME: "PrepperGPT",
     WEBUI_ADMIN_EMAIL: process.env.WEBUI_ADMIN_EMAIL || "admin@preppergpt.local",
@@ -35,6 +42,7 @@ function envFile(plan, paths, detection) {
     JUPYTER_TOKEN: jupyterToken,
     SEARXNG_SECRET_KEY: searxngSecret,
     GLM52_BASE_URL: process.env.GLM52_BASE_URL || "http://127.0.0.1:11441/v1",
+    GLM52_Q8_BASE_URL: process.env.GLM52_Q8_BASE_URL || "http://127.0.0.1:11446/v1",
     SLOCODE_BASE_URL: process.env.SLOCODE_BASE_URL || "http://127.0.0.1:11438/v1",
     OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434"
   };

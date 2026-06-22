@@ -1,13 +1,18 @@
 # PrepperGPT
 
-PrepperGPT packages a local-first ChatGPT-like experience for Linux machines.
-It uses upstream OpenWebUI for the app shell and adds a hardware detector,
-model planner, Docker Compose runtime, local sidecars, and a practical
-PrepperGPT field-kit theme.
+PrepperGPT packages a local-first ChatGPT-like experience for post-apocalyptic
+or long-duration outage scenarios where hosted AI services are unavailable. It
+uses upstream OpenWebUI for the app shell and adds a hardware detector, model
+planner, Docker Compose runtime, local sidecars, and a practical PrepperGPT
+field-kit theme.
 
 The first release targets Linux with NVIDIA GPUs first, with CPU fallback where
 possible. It is an online installer: model and container downloads require a
 working network during setup.
+
+PrepperGPT optimizes for survivability over cloud-like latency. On very large
+local models, very low tokens/sec is acceptable because the alternative in the
+target scenario is no assistant at all.
 
 ## Install
 
@@ -68,7 +73,8 @@ preppergpt bundle whisper
 ## Profiles
 
 - `intelligence`: chooses the strongest local reasoning route that fits the
-  machine, preferring GLM 5.2 Q4 and long-context coding routes when available.
+  machine, preferring GLM 5.2 Q8 on enterprise hardware, then GLM 5.2 Q4, then
+  long-context coding routes when available.
 - `speed`: chooses smaller GPU-friendly routes and makes low-latency chat the
   default.
 - `balanced`: uses the local auto-router as the default and keeps reasoning,
@@ -85,9 +91,13 @@ by default and mounted into OpenWebUI, so speech-to-text works from local files
 after setup.
 
 Some other routes can be pulled by the runtime, while very large routes such as
-GLM 5.2 Q4 and Flux weights are marked as manual or external in
+GLM 5.2 Q8/Q4 and Flux weights are marked as manual or external in
 `profiles/models.json`. `preppergpt doctor` reports which selected routes still
 need local files or endpoints.
+
+The GLM 5.2 Q8 route is intended for an enterprise/off-grid bunker-class host:
+large RAM, fast NVMe, and patience for slow local generation when no hosted
+service remains available.
 
 ## Publishing
 

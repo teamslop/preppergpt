@@ -7,7 +7,7 @@ import { packageRoot, runtimePaths } from "./lib/paths.mjs";
 import { renderInstall } from "./lib/render.mjs";
 import { commandResult, parseArgs, readJson, shellQuote } from "./lib/util.mjs";
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 
 function usage() {
   return `PrepperGPT ${VERSION}

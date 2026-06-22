@@ -1,7 +1,7 @@
 {
   "name": "preppergpt",
-  "version": "0.1.1",
-  "description": "A local-first ChatGPT-like field kit built on OpenWebUI and local models.",
+  "version": "0.1.2",
+  "description": "A post-apocalyptic local AI field kit for running a ChatGPT-like experience when hosted services are unavailable.",
   "type": "module",
   "bin": {
     "preppergpt": "bin/preppergpt.js"
@@ -28,7 +28,9 @@
     "llm",
     "ollama",
     "preppergpt",
-    "offline-ai"
+    "offline-ai",
+    "survival",
+    "post-apocalyptic"
   ],
   "homepage": "https://github.com/teamslop/preppergpt#readme",
   "bugs": {

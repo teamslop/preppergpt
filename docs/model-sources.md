@@ -6,7 +6,7 @@ PrepperGPT separates routing from model licensing and distribution.
 - Whisper Base STT is installer-cached from `Systran/faster-whisper-base`
   under the local PrepperGPT model directory and mounted into OpenWebUI.
 - Hugging Face vision models are downloaded by the local vision sidecar.
-- Very large GLM, Slopcode, and Flux assets are marked as manual or external
+- Very large GLM Q8/Q4, Slopcode, and Flux assets are marked as manual or external
   until a license-compatible public download source is configured.
 
 Manual routes are still added to OpenWebUI. They become live when their local

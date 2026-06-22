@@ -5,8 +5,8 @@
       "label": "Max intelligence",
       "defaultModel": "glm52-q4-local",
       "roles": {
-        "chat": ["glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b", "llama3.1:8b"],
-        "reasoning": ["glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
+        "chat": ["glm52-q8-local", "glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b", "llama3.1:8b"],
+        "reasoning": ["glm52-q8-local", "glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
         "fast": ["gemma4:12b-256k-gpu", "llama3.1:8b"],
         "coding": ["qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
         "research": ["deep-research-glm52"],
@@ -21,7 +21,7 @@
       "defaultModel": "local-chatgpt-auto",
       "roles": {
         "chat": ["local-chatgpt-auto", "gemma4:12b-256k-gpu", "glm52-q4-local", "llama3.1:8b"],
-        "reasoning": ["glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
+        "reasoning": ["glm52-q8-local", "glm52-q4-local", "qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
         "fast": ["gemma4:12b-256k-gpu", "llama3.1:8b"],
         "coding": ["qwen3.6-35b-a3b:slopcode-cpu-64k", "qwen2.5-coder:14b"],
         "research": ["deep-research-glm52"],
@@ -67,6 +67,26 @@
       }
     },
     {
+      "id": "glm52-q8-local",
+      "name": "GLM 5.2 Q8 Local",
+      "roles": ["chat", "reasoning"],
+      "backend": "llama.cpp",
+      "contextTokens": 65536,
+      "qualityScore": 104,
+      "speedScore": 15,
+      "tpsEstimate": "very low tokens/sec may be acceptable in disaster/off-grid use because no hosted model is available; benchmark locally",
+      "requires": {
+        "minRamGb": 192,
+        "diskGb": 1000,
+        "nvme": true
+      },
+      "source": {
+        "type": "external",
+        "requiresHardwareFit": true,
+        "description": "Run a GLM 5.2 Q8 OpenAI-compatible llama.cpp server at http://127.0.0.1:11446/v1 with weights on fast NVMe for maximum local quality when hosted services are unavailable."
+      }
+    },
+    {
       "id": "glm52-q4-local",
       "name": "GLM 5.2 Q4 Local",
       "roles": ["chat", "reasoning"],
@@ -74,7 +94,7 @@
       "contextTokens": 65536,
       "qualityScore": 100,
       "speedScore": 25,
-      "tpsEstimate": "0.4-3 completion tokens/sec on large CPU/NVMe builds; benchmark locally",
+      "tpsEstimate": "0.4-3 completion tokens/sec on large CPU/NVMe builds; acceptable for disaster/off-grid use when no hosted service is available; benchmark locally",
       "requires": {
         "minRamGb": 96,
         "diskGb": 520,
